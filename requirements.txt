@@ -3,3 +3,4 @@ Django==6.0.5
 python-dotenv==1.2.2
 sqlparse==0.5.5
 tzdata==2026.2
+opensearch-py==3.2.0
