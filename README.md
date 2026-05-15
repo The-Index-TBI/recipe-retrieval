@@ -7,7 +7,7 @@ A scalable semantic recipe search engine built with Django and OpenSearch, power
 |------|------------|------|
 | Yi Sang | 2306xxxxxx | OpenSearch Setup & Indexing Pipeline |
 | Faust | 2306yyyyyy | Django Backend & Search API |
-| Don Quixote | 2306zzzzzz | Frontend, Semantic Search & Deployment |
+| Henry Aditya Kosasi | 2306214990 | Frontend, Semantic Search & Deployment |
 
 ## Dataset
 
