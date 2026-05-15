@@ -1,6 +1,6 @@
 import csv
 import ast
-from opensearchpy import OpenSearch
+from opensearchpy import OpenSearch, helpers
 
 # Connect to OpenSearch
 client = OpenSearch(
@@ -8,10 +8,9 @@ client = OpenSearch(
     use_ssl=False,
 )
 
-# Index name
 INDEX_NAME = "recipes"
 
-# Create index if it doesn't exist
+# Create index mapping
 if not client.indices.exists(index=INDEX_NAME):
     client.indices.create(index=INDEX_NAME, body={
         "mappings": {
@@ -27,13 +26,13 @@ if not client.indices.exists(index=INDEX_NAME):
     })
     print(f"Index '{INDEX_NAME}' created.")
 
-# Path to your CSV
-CSV_PATH = "/mnt/c/Users/USER/Downloads/archive/RecipeNLG_dataset.csv"
-
-# Index first 10,000 recipes
+CSV_PATH = r"RecipeNLG_dataset.csv"
 LIMIT = 10000
+BATCH_SIZE = 500
 
-print(f"Indexing {LIMIT} recipes...")
+print(f"Indexing {LIMIT} recipes using Bulk method...")
+
+actions = []
 
 with open(CSV_PATH, encoding="utf-8") as f:
     reader = csv.DictReader(f)
@@ -41,18 +40,38 @@ with open(CSV_PATH, encoding="utf-8") as f:
         if i >= LIMIT:
             break
 
+        # Ubah string dari CSV menjadi Array/List Python
+        # agar OpenSearch lebih mudah melakukan pencarian (keyword matching)
+        try:
+            ingredients_list = ast.literal_eval(row["ingredients"])
+            directions_list = ast.literal_eval(row["directions"])
+            ner_list = ast.literal_eval(row["NER"])
+        except (ValueError, SyntaxError):
+            # Jika gagal di-parse, kembalikan ke bentuk string asli
+            ingredients_list = row["ingredients"]
+            directions_list = row["directions"]
+            ner_list = row["NER"]
+
         doc = {
-            "title": row["title"],
-            "ingredients": row["ingredients"],
-            "directions": row["directions"],
-            "link": row["link"],
-            "source": row["source"],
-            "ner": row["NER"],
+            "_index": INDEX_NAME,
+            "_source": {
+                "title": row["title"],
+                "ingredients": ingredients_list,
+                "directions": directions_list,
+                "link": row["link"],
+                "source": row["source"],
+                "ner": ner_list,
+            }
         }
+        actions.append(doc)
 
-        client.index(index=INDEX_NAME, body=doc)
+        if len(actions) >= BATCH_SIZE:
+            helpers.bulk(client, actions)
+            actions = []
+            print(f"Successfully indexed {i + 1} recipes...")
 
-        if i % 1000 == 0:
-            print(f"Indexed {i} recipes...")
+if len(actions) > 0:
+    helpers.bulk(client, actions)
+    print("Indexed the remaining recipes...")
 
-print("Done!")
+print("Done! Data siap dicari.")
