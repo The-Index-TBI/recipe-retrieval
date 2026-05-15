@@ -1,0 +1,97 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Dishcover — find recipes by ingredients, cravings, or dietary needs. Powered by OpenSearch semantic retrieval." />
+  <title>Dishcover — Recipe Search Engine</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="{% static 'css/dishcover.css' %}" />
+</head>
+
+<body>
+
+  <!-- ── Header ─────────────────────────────────────────────────── -->
+  <header>
+    <div class="container header-inner">
+      <a href="/" class="brand">Dish<span>cover</span></a>
+      <nav>
+        <a href="#" class="active" id="nav-search">Search</a>
+        <a href="#" id="nav-collections">Collections</a>
+        <a href="#" id="nav-about">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ── Hero ───────────────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="container">
+      <p class="hero-label">Recipe Retrieval System</p>
+      <h1>
+        Find the recipe<em>,</em><br>
+        not the noise<span class="dot">.</span>
+      </h1>
+      <p class="hero-sub">
+        Search by ingredients, cravings, or dietary needs.
+        Powered by OpenSearch semantic retrieval.
+      </p>
+      <div class="search-wrap">
+        <input type="text" id="search-input" autocomplete="off"
+          placeholder="e.g. I have chicken, tomatoes, and garlic — make me a soup" />
+        <button id="search-btn">Search</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Filter Bar ─────────────────────────────────────────────── -->
+  <div class="filter-bar">
+    <div class="container filter-inner" id="filter-bar">
+      <button class="chip active" data-filter="All">All</button>
+      <button class="chip" data-filter="Few Ingredients">Few Ingredients</button>
+      <button class="chip" data-filter="Simple">Simple Steps</button>
+      <button class="chip" data-filter="Many Steps">Many Steps</button>
+    </div>
+  </div>
+
+  <!-- ── Results ────────────────────────────────────────────────── -->
+  <main class="results-section">
+    <div class="container">
+      <p class="results-meta" id="results-meta"></p>
+      <div class="recipe-grid" id="recipe-grid"></div>
+      <div class="empty-state" id="empty-state" style="display:none">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="28" cy="28" r="20" stroke="currentColor" stroke-width="2" />
+          <line x1="43" y1="43" x2="58" y2="58" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          <path d="M22 28h12M28 22v12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.4" />
+        </svg>
+        <p>No recipes found.</p>
+        <p>Try a different query or adjust your filters.</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- ── Footer ─────────────────────────────────────────────────── -->
+  <footer>
+    <div class="container footer-inner">
+      <span>Dishcover &mdash; Phase 1 Skeleton</span>
+      <span>Powered by OpenSearch</span>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="{% static 'js/dishcover.js' %}"></script>
+
+</body>
+
+</html>
