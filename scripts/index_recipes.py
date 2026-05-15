@@ -4,13 +4,42 @@ import os
 from dotenv import load_dotenv
 from opensearchpy import OpenSearch, helpers
 
-# Connect to OpenSearch
+INDEX_NAME = "recipes"
+DEFAULT_LIMIT = 10000
+DEFAULT_BATCH_SIZE = 500
+
+
+def env_bool(var_name: str, default: bool = False) -> bool:
+    raw_value = os.getenv(var_name)
+    if raw_value is None:
+        return default
+    return raw_value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+load_dotenv(override=True)
+
+http_auth = None
+if os.getenv("OPENSEARCH_USERNAME") and os.getenv("OPENSEARCH_PASSWORD"):
+    http_auth = (os.getenv("OPENSEARCH_USERNAME"), os.getenv("OPENSEARCH_PASSWORD"))
+
 client = OpenSearch(
-    hosts=[{"host": "localhost", "port": 9200}],
-    use_ssl=False,
+    hosts=[
+        {
+            "host": os.getenv("OPENSEARCH_HOST", "localhost"),
+            "port": int(os.getenv("OPENSEARCH_PORT", "9200")),
+        }
+    ],
+    use_ssl=env_bool("OPENSEARCH_USE_SSL", False),
+    verify_certs=env_bool("OPENSEARCH_VERIFY_CERTS", False),
+    http_auth=http_auth,
 )
 
-INDEX_NAME = "recipes"
+CSV_PATH = os.getenv("CSV_PATH")
+LIMIT = int(os.getenv("INDEX_LIMIT", str(DEFAULT_LIMIT)))
+BATCH_SIZE = int(os.getenv("INDEX_BATCH_SIZE", str(DEFAULT_BATCH_SIZE)))
+
+if not CSV_PATH:
+    raise RuntimeError("CSV_PATH is not set. Add it to .env or your shell environment.")
 
 # Create index mapping
 if not client.indices.exists(index=INDEX_NAME):
@@ -27,11 +56,6 @@ if not client.indices.exists(index=INDEX_NAME):
         }
     })
     print(f"Index '{INDEX_NAME}' created.")
-
-load_dotenv()
-CSV_PATH = os.getenv("CSV_PATH")
-LIMIT = 10000
-BATCH_SIZE = 500
 
 print(f"Indexing {LIMIT} recipes using Bulk method...")
 

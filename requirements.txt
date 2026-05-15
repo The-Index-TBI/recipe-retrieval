@@ -1,6 +1,8 @@
 asgiref==3.11.1
 Django==6.0.5
+gunicorn==23.0.0
 python-dotenv==1.2.2
 sqlparse==0.5.5
 tzdata==2026.2
 opensearch-py==3.2.0
+whitenoise==6.11.0
