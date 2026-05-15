@@ -77,4 +77,4 @@ if len(actions) > 0:
     helpers.bulk(client, actions)
     print("Indexed the remaining recipes...")
 
-print("Done! Data siap dicari.")
+print("Done! Data is ready to be searched.")
