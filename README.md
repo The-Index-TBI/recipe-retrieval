@@ -5,7 +5,7 @@ A scalable semantic recipe search engine built with Django and OpenSearch, power
 
 | Name | Student ID | Role |
 |------|------------|------|
-| Yi Sang | 2306xxxxxx | OpenSearch Setup & Indexing Pipeline |
+| Valentino Vieri Zhuo | 2306206446 | OpenSearch Setup & Indexing Pipeline |
 | Faust | 2306yyyyyy | Django Backend & Search API |
 | Henry Aditya Kosasi | 2306214990 | Frontend, Semantic Search & Deployment |
 
@@ -65,7 +65,6 @@ curl http://localhost:9200
 Download the RecipeNLG dataset from [Kaggle](https://www.kaggle.com/datasets/paultimothymooney/recipenlg) and place the CSV file somewhere accessible on your machine.
 
 ### 8. Index the recipes
-Update `CSV_PATH` in `scripts/index_recipes.py` to point to your CSV file, then run:
 ```bash
 python scripts/index_recipes.py
 ```
@@ -83,3 +82,14 @@ curl -X GET "http://localhost:9200/recipes/_search?pretty" -H "Content-Type: app
 }'
 ```
 Should return 3 ranked recipes. If you see results, everything is working! ✅
+
+### 10. Stop OpenSearch when done
+```bash
+docker stop opensearch
+```
+
+### Running OpenSearch next time
+No need to pull the image again. Just start the existing container:
+```bash
+docker start opensearch
+```
