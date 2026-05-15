@@ -120,3 +120,19 @@ USE_TZ = True
 STATIC_URL = "static/"
 
 STATICFILES_DIRS = [BASE_DIR / "static"]
+
+
+def env_bool(var_name: str, default: bool = False) -> bool:
+    raw_value = os.getenv(var_name)
+    if raw_value is None:
+        return default
+    return raw_value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+OPENSEARCH_HOST = os.getenv("OPENSEARCH_HOST", "localhost")
+OPENSEARCH_PORT = int(os.getenv("OPENSEARCH_PORT", "9200"))
+OPENSEARCH_USE_SSL = env_bool("OPENSEARCH_USE_SSL", False)
+OPENSEARCH_VERIFY_CERTS = env_bool("OPENSEARCH_VERIFY_CERTS", False)
+OPENSEARCH_USERNAME = os.getenv("OPENSEARCH_USERNAME", "")
+OPENSEARCH_PASSWORD = os.getenv("OPENSEARCH_PASSWORD", "")
+OPENSEARCH_INDEX = os.getenv("OPENSEARCH_INDEX", "recipes")

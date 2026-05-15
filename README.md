@@ -6,7 +6,7 @@ A scalable semantic recipe search engine built with Django and OpenSearch, power
 | Name | Student ID | Role |
 |------|------------|------|
 | Valentino Vieri Zhuo | 2306206446 | OpenSearch Setup & Indexing Pipeline |
-| Faust | 2306yyyyyy | Django Backend & Search API |
+| Joshua Montolalu | 2306275746 | Django Backend & Search API |
 | Henry Aditya Kosasi | 2306214990 | Frontend, Semantic Search & Deployment |
 
 ## Dataset
