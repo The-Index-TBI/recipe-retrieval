@@ -1,5 +1,7 @@
-import csv
 import ast
+import csv
+import os
+from dotenv import load_dotenv
 from opensearchpy import OpenSearch, helpers
 
 # Connect to OpenSearch
@@ -26,7 +28,8 @@ if not client.indices.exists(index=INDEX_NAME):
     })
     print(f"Index '{INDEX_NAME}' created.")
 
-CSV_PATH = r"RecipeNLG_dataset.csv"
+load_dotenv()
+CSV_PATH = os.getenv("CSV_PATH")
 LIMIT = 10000
 BATCH_SIZE = 500
 
@@ -74,4 +77,4 @@ if len(actions) > 0:
     helpers.bulk(client, actions)
     print("Indexed the remaining recipes...")
 
-print("Done! Data siap dicari.")
+print("Done! Data is ready to be searched.")
