@@ -1,0 +1,13 @@
+[run]
+branch = True
+source = core
+omit =
+    manage.py
+    core/asgi.py
+    core/wsgi.py
+
+[report]
+omit =
+    manage.py
+    core/asgi.py
+    core/wsgi.py

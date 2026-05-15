@@ -1,5 +1,32 @@
-# recipe-retrieval
-A scalable semantic recipe search engine built with Django and OpenSearch, powered by the RecipeNLG dataset.
+# Dishcover
+Dishcover is a recipe retrieval project built with Django and OpenSearch on top of the RecipeNLG dataset.
+
+The project focuses on practical cooking intent, not just exact recipe-name lookup. Users can search by ingredients, dish names, or broad cravings, and the app returns ranked recipe results from the indexed corpus.
+
+Live app: https://dishcover-2mlm8.ondigitalocean.app/
+
+## Project Snapshot
+
+This repository currently includes a working Django backend, an OpenSearch indexing pipeline, and a deployed frontend experience. The backend can health-check OpenSearch and run recipe searches against the indexed RecipeNLG corpus, and the frontend renders search results directly from the API.
+
+The longer-term roadmap includes richer filters, semantic retrieval, recipe detail pages, ingredient suggestions, and optional image-assisted search.
+
+## Current Features
+
+- Deployed Django + OpenSearch recipe search app on DigitalOcean.
+- Django backend wired to OpenSearch through reusable connection settings.
+- OpenSearch health endpoint at `/api/health/opensearch/`.
+- Basic recipe search endpoint at `/api/search/?q=...&size=...`.
+- OpenSearch indexing script for the RecipeNLG CSV dataset.
+- Text search across recipe title, ingredients, directions, and NER fields.
+- Boosted title matching in the search query.
+- Frontend search UI connected to the backend API.
+- Client-side filters for all results, fewer ingredients, simple steps, and many steps.
+- Result cards showing score, tags, ingredients, first step preview, and source link.
+- Basic Django unit tests for the API surface.
+- GitHub Actions workflow that runs the test suite with coverage.
+- Codecov-ready coverage output for CI.
+- Frontend template and static assets for the initial UI shell.
 
 ## Team
 
@@ -93,3 +120,53 @@ No need to pull the image again. Just start the existing container:
 ```bash
 docker start opensearch
 ```
+
+## Testing and CI
+
+Run the Django unit tests locally with:
+
+```bash
+python manage.py test
+```
+
+The repository also includes a GitHub Actions workflow at `.github/workflows/ci.yml` that runs the same test suite with coverage enabled.
+
+For a coverage summary locally, run:
+
+```bash
+pip install coverage # if not installed already
+python -m coverage run --branch manage.py test
+python -m coverage report -m
+```
+
+## Planned Features
+
+The following items are planned or partially scoped in the project guide, but are not fully implemented yet:
+
+- Ingredient include/exclude filters for pantry-style search.
+- Pagination and result size controls in the API.
+- Recipe detail endpoint for retrieving a single indexed recipe.
+- Ingredient suggestions based on frequent RecipeNLG NER terms.
+- Semantic search using sentence-transformer embeddings.
+- Hybrid search that combines BM25 with vector retrieval.
+- Similar recipe search based on vector distance.
+- Query understanding for natural language cooking intent.
+- Difficulty and time estimates derived from recipe text.
+- Search analytics for latency and common query logging.
+- Image-assisted search as a stretch feature, not direct image-to-recipe retrieval.
+
+## Architecture Overview
+
+- Django serves the API and the base frontend shell.
+- OpenSearch stores the indexed RecipeNLG recipes and powers retrieval.
+- `scripts/index_recipes.py` builds the initial index from the CSV dataset.
+- The backend currently exposes health and search endpoints; additional endpoints are planned as the project grows.
+
+## API Endpoints
+
+Current backend endpoints:
+
+- `GET /api/health/opensearch/` - checks whether OpenSearch is reachable and whether the target index exists.
+- `GET /api/search/?q=...&size=...` - searches recipes with a boosted title match and returns ranked results.
+
+Planned endpoints include recipe detail, ingredient suggestions, and image-assisted search.
