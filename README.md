@@ -1,5 +1,7 @@
-# recipe-retrieval
-A scalable semantic recipe search engine built with Django and OpenSearch, powered by the RecipeNLG dataset.
+# Dishcover
+Dishcover is a scalable, semantic-based recipe search engine built with Django and OpenSearch, powered by the RecipeNLG dataset.
+
+Check it out here: https://dishcover-2mlm8.ondigitalocean.app/
 
 ## Team
 
@@ -93,3 +95,13 @@ No need to pull the image again. Just start the existing container:
 ```bash
 docker start opensearch
 ```
+
+## Testing and CI
+
+Run the Django unit tests locally with:
+
+```bash
+python manage.py test
+```
+
+The repository also includes a GitHub Actions workflow at `.github/workflows/ci.yml` that runs the same test suite with coverage enabled.
