@@ -8,13 +8,22 @@ let isLoading = false;
 let currentAbortController = null;
 let activeRequestId = 0;
 let searchError = '';
+let currentPage = 1;
+let totalResults = 0;
+let totalRelation = 'eq';
 
 const searchInput = document.getElementById('search-input');
 const searchBtn = document.getElementById('search-btn');
+const includeInput = document.getElementById('include-input');
+const excludeInput = document.getElementById('exclude-input');
 const filterBar = document.getElementById('filter-bar');
 const grid = document.getElementById('recipe-grid');
 const metaEl = document.getElementById('results-meta');
 const emptyEl = document.getElementById('empty-state');
+const paginationEl = document.getElementById('pagination');
+const prevPageBtn = document.getElementById('prev-page');
+const nextPageBtn = document.getElementById('next-page');
+const pageStatusEl = document.getElementById('page-status');
 
 function toArray(value) {
   if (Array.isArray(value)) return value;
@@ -89,6 +98,32 @@ function setEmptyCopy(title, subtitle) {
   if (paragraphs[1]) paragraphs[1].textContent = subtitle;
 }
 
+function getIngredientFilters() {
+  return {
+    include: includeInput.value.trim(),
+    exclude: excludeInput.value.trim(),
+  };
+}
+
+function updatePagination(filteredCount) {
+  const hasQuery = Boolean(activeQuery);
+  const hasResults = filteredCount > 0;
+  paginationEl.style.display = hasQuery && hasResults ? 'flex' : 'none';
+
+  if (!hasQuery || !hasResults) return;
+
+  const seenResults = (currentPage - 1) * DEFAULT_RESULT_SIZE + recipes.length;
+  const exactTotalReached = totalRelation === 'eq' && seenResults >= totalResults;
+  const shortPageReached = recipes.length < DEFAULT_RESULT_SIZE;
+  const hasNextPage = !exactTotalReached && !shortPageReached;
+
+  prevPageBtn.disabled = currentPage <= 1 || isLoading;
+  nextPageBtn.disabled = !hasNextPage || isLoading;
+
+  const totalLabel = totalRelation === 'gte' ? `${totalResults}+` : String(totalResults);
+  pageStatusEl.textContent = `Page ${currentPage} / ${totalLabel}`;
+}
+
 function buildCard(recipe) {
   const visibleNer = recipe.ner.slice(0, 5);
   const moreNer = recipe.ner.length - 5;
@@ -149,6 +184,7 @@ function render() {
     metaEl.textContent = `Searching recipes for "${activeQuery}"...`;
     grid.innerHTML = '';
     emptyEl.style.display = 'none';
+    paginationEl.style.display = 'none';
     return;
   }
 
@@ -157,6 +193,7 @@ function render() {
     grid.innerHTML = '';
     setEmptyCopy('Search service is unavailable.', searchError);
     emptyEl.style.display = 'flex';
+    paginationEl.style.display = 'none';
     return;
   }
 
@@ -165,23 +202,31 @@ function render() {
     grid.innerHTML = '';
     setEmptyCopy('Start with a cooking idea.', 'Try an ingredient, dish name, or natural-language craving.');
     emptyEl.style.display = 'flex';
+    paginationEl.style.display = 'none';
     return;
   }
 
   const filtered = applyFilter(recipes);
+  const filters = getIngredientFilters();
+  const filterParts = [];
+  if (filters.include) filterParts.push(`including <strong>${escapeHtml(filters.include)}</strong>`);
+  if (filters.exclude) filterParts.push(`excluding <strong>${escapeHtml(filters.exclude)}</strong>`);
 
   metaEl.innerHTML = `Showing ${filtered.length} result${filtered.length !== 1 ? 's' : ''} for <strong>${escapeHtml(activeQuery)}</strong>`
+    + (filterParts.length > 0 ? `, ${filterParts.join(', ')}` : '')
     + (activeFilter !== 'All' ? ` with <strong>${escapeHtml(activeFilter)}</strong>` : '');
 
   if (filtered.length === 0) {
     grid.innerHTML = '';
     setEmptyCopy('No recipes found.', 'Try a different query or adjust your filters.');
     emptyEl.style.display = 'flex';
+    updatePagination(filtered.length);
     return;
   }
 
   emptyEl.style.display = 'none';
   grid.innerHTML = filtered.map(buildCard).join('');
+  updatePagination(filtered.length);
 }
 
 async function searchRecipes(query) {
@@ -193,10 +238,14 @@ async function searchRecipes(query) {
   activeRequestId = requestId;
   currentAbortController = new AbortController();
   const abortController = currentAbortController;
+  const filters = getIngredientFilters();
   const params = new URLSearchParams({
     q: query,
     size: String(DEFAULT_RESULT_SIZE),
+    page: String(currentPage),
   });
+  if (filters.include) params.set('include', filters.include);
+  if (filters.exclude) params.set('exclude', filters.exclude);
 
   searchError = '';
   setLoadingState(true);
@@ -217,6 +266,9 @@ async function searchRecipes(query) {
     }
 
     recipes = toArray(payload.results).map(normalizeRecipe);
+    currentPage = Number(payload.page || currentPage);
+    totalResults = Number(payload.total || 0);
+    totalRelation = payload.total_relation || 'eq';
   } catch (error) {
     if (error.name === 'AbortError') return;
 
@@ -242,6 +294,9 @@ function doSearch() {
 
     activeRequestId += 1;
     activeQuery = '';
+    currentPage = 1;
+    totalResults = 0;
+    totalRelation = 'eq';
     recipes = [];
     searchError = '';
     setLoadingState(false);
@@ -250,12 +305,19 @@ function doSearch() {
   }
 
   activeQuery = query;
+  currentPage = 1;
   searchRecipes(query);
 }
 
 searchBtn.addEventListener('click', doSearch);
 searchInput.addEventListener('keydown', event => {
   if (event.key === 'Enter') doSearch();
+});
+
+[includeInput, excludeInput].forEach(input => {
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Enter') doSearch();
+  });
 });
 
 filterBar.addEventListener('click', event => {
@@ -266,6 +328,18 @@ filterBar.addEventListener('click', event => {
   chip.classList.add('active');
   activeFilter = chip.dataset.filter;
   render();
+});
+
+prevPageBtn.addEventListener('click', () => {
+  if (currentPage <= 1 || isLoading || !activeQuery) return;
+  currentPage -= 1;
+  searchRecipes(activeQuery);
+});
+
+nextPageBtn.addEventListener('click', () => {
+  if (isLoading || !activeQuery) return;
+  currentPage += 1;
+  searchRecipes(activeQuery);
 });
 
 render();

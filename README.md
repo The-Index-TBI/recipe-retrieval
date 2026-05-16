@@ -16,11 +16,13 @@ The longer-term roadmap includes richer filters, semantic retrieval, recipe deta
 - Deployed Django + OpenSearch recipe search app on DigitalOcean.
 - Django backend wired to OpenSearch through reusable connection settings.
 - OpenSearch health endpoint at `/api/health/opensearch/`.
-- Basic recipe search endpoint at `/api/search/?q=...&size=...`.
+- Recipe search endpoint at `/api/search/?q=...&include=...&exclude=...&page=...&size=...`.
 - OpenSearch indexing script for the RecipeNLG CSV dataset.
 - Text search across recipe title, ingredients, directions, and NER fields.
 - Boosted title matching in the search query.
 - Frontend search UI connected to the backend API.
+- Include and exclude ingredient filters for pantry-style search.
+- Paginated API and frontend navigation.
 - Client-side filters for all results, fewer ingredients, simple steps, and many steps.
 - Result cards showing score, tags, ingredients, first step preview, and source link.
 - Basic Django unit tests for the API surface.
@@ -143,8 +145,6 @@ python -m coverage report -m
 
 The following items are planned or partially scoped in the project guide, but are not fully implemented yet:
 
-- Ingredient include/exclude filters for pantry-style search.
-- Pagination and result size controls in the API.
 - Recipe detail endpoint for retrieving a single indexed recipe.
 - Ingredient suggestions based on frequent RecipeNLG NER terms.
 - Semantic search using sentence-transformer embeddings.
@@ -168,5 +168,6 @@ Current backend endpoints:
 
 - `GET /api/health/opensearch/` - checks whether OpenSearch is reachable and whether the target index exists.
 - `GET /api/search/?q=...&size=...` - searches recipes with a boosted title match and returns ranked results.
+- `GET /api/search/?q=chicken&include=garlic,tomato&exclude=milk&page=2&size=12` - searches recipes with required and excluded ingredient phrases, returning a paginated result page.
 
 Planned endpoints include recipe detail, ingredient suggestions, and image-assisted search.
