@@ -64,9 +64,6 @@ actions = []
 with open(CSV_PATH, encoding="utf-8") as f:
     reader = csv.DictReader(f)
     for i, row in enumerate(reader):
-        if i >= LIMIT:
-            break
-
         # Ubah string dari CSV menjadi Array/List Python
         # agar OpenSearch lebih mudah melakukan pencarian (keyword matching)
         try:
