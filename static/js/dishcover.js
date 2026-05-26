@@ -3,6 +3,7 @@ const DEFAULT_RESULT_SIZE = 12;
 
 let activeQuery = '';
 let activeFilter = 'All';
+let activeMode = 'keyword';
 let recipes = [];
 let isLoading = false;
 let currentAbortController = null;
@@ -19,6 +20,7 @@ const searchBtn = document.getElementById('search-btn');
 const includeInput = document.getElementById('include-input');
 const excludeInput = document.getElementById('exclude-input');
 const filterBar = document.getElementById('filter-bar');
+const searchMode = document.getElementById('search-mode');
 const grid = document.getElementById('recipe-grid');
 const metaEl = document.getElementById('results-meta');
 const emptyEl = document.getElementById('empty-state');
@@ -121,6 +123,15 @@ function updatePagination(filteredCount) {
   pageStatusEl.textContent = `Page ${currentPage} / ${totalLabel}`;
 }
 
+function getModeLabel() {
+  const labels = {
+    keyword: 'Keyword',
+    semantic: 'Semantic',
+    hybrid: 'Hybrid',
+  };
+  return labels[activeMode] || 'Keyword';
+}
+
 function buildCard(recipe) {
   const visibleNer = recipe.ner.slice(0, 5);
   const moreNer = recipe.ner.length - 5;
@@ -178,7 +189,7 @@ function buildCard(recipe) {
 
 function render() {
   if (isLoading) {
-    metaEl.textContent = `Searching recipes for "${activeQuery}"...`;
+    metaEl.textContent = `Searching ${getModeLabel().toLowerCase()} results for "${activeQuery}"...`;
     grid.innerHTML = '';
     emptyEl.style.display = 'none';
     paginationEl.style.display = 'none';
@@ -209,7 +220,7 @@ function render() {
   if (filters.include) filterParts.push(`including <strong>${escapeHtml(filters.include)}</strong>`);
   if (filters.exclude) filterParts.push(`excluding <strong>${escapeHtml(filters.exclude)}</strong>`);
 
-  metaEl.innerHTML = `Showing ${filtered.length} result${filtered.length !== 1 ? 's' : ''} for <strong>${escapeHtml(activeQuery)}</strong>`
+  metaEl.innerHTML = `Showing ${filtered.length} ${escapeHtml(getModeLabel().toLowerCase())} result${filtered.length !== 1 ? 's' : ''} for <strong>${escapeHtml(activeQuery)}</strong>`
     + (filterParts.length > 0 ? `, ${filterParts.join(', ')}` : '')
     + (activeFilter !== 'All' ? ` with <strong>${escapeHtml(activeFilter)}</strong>` : '');
 
@@ -238,6 +249,7 @@ async function searchRecipes(query) {
   const filters = getIngredientFilters();
   const params = new URLSearchParams({
     q: query,
+    mode: activeMode,
     size: String(DEFAULT_RESULT_SIZE),
     page: String(currentPage),
   });
@@ -329,6 +341,18 @@ filterBar.addEventListener('click', event => {
   chip.classList.add('active');
   activeFilter = chip.dataset.filter;
   render();
+});
+
+searchMode.addEventListener('click', event => {
+  const chip = event.target.closest('.mode-chip');
+  if (!chip || isLoading) return;
+
+  searchMode.querySelectorAll('.mode-chip').forEach(item => item.classList.remove('active'));
+  chip.classList.add('active');
+  activeMode = chip.dataset.mode || 'keyword';
+  currentPage = 1;
+
+  if (activeQuery) searchRecipes(activeQuery);
 });
 
 prevPageBtn.addEventListener('click', () => {
