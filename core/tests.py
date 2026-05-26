@@ -56,6 +56,23 @@ class OpenSearchViewTests(SimpleTestCase):
 
     @override_settings(OPENSEARCH_INDEX="recipes")
     @patch("core.views.get_opensearch_client")
+    def test_search_recipes_rejects_invalid_mode(self, mock_get_client):
+        mock_get_client.return_value = self.opensearch_client
+
+        response = self.django_client.get(
+            reverse("recipe-search"),
+            {"q": "chicken", "mode": "unknown"},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertJSONEqual(
+            response.content,
+            '{"error": "Invalid search mode. Use keyword, semantic, or hybrid."}',
+        )
+        self.opensearch_client.search.assert_not_called()
+
+    @override_settings(OPENSEARCH_INDEX="recipes")
+    @patch("core.views.get_opensearch_client")
     def test_search_recipes_returns_results(self, mock_get_client):
         mock_get_client.return_value = self.opensearch_client
         self.opensearch_client.search.return_value = {
@@ -79,7 +96,7 @@ class OpenSearchViewTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(
             response.content,
-            '{"query": "chicken", "include": [], "exclude": [], "page": 1, "size": 3, "total": 1, "total_relation": "eq", "count": 1, "results": [{"id": "1", "score": 12.5, "title": "Chicken Soup", "ingredients": "chicken, water"}]}',
+            '{"query": "chicken", "mode": "keyword", "include": [], "exclude": [], "page": 1, "size": 3, "total": 1, "total_relation": "eq", "total_pages": 1, "max_page": 3333, "has_next": false, "has_previous": false, "count": 1, "results": [{"id": "1", "score": 12.5, "title": "Chicken Soup", "ingredients": "chicken, water"}]}',
         )
         self.opensearch_client.search.assert_called_once()
         called_kwargs = self.opensearch_client.search.call_args.kwargs
@@ -126,7 +143,7 @@ class OpenSearchViewTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(
             response.content,
-            '{"query": "chicken", "include": ["garlic", "tomato"], "exclude": ["milk"], "page": 2, "size": 12, "total": 42, "total_relation": "eq", "count": 0, "results": []}',
+            '{"query": "chicken", "mode": "keyword", "include": ["garlic", "tomato"], "exclude": ["milk"], "page": 2, "size": 12, "total": 42, "total_relation": "eq", "total_pages": 4, "max_page": 833, "has_next": true, "has_previous": true, "count": 0, "results": []}',
         )
 
         called_body = self.opensearch_client.search.call_args.kwargs["body"]
@@ -139,3 +156,41 @@ class OpenSearchViewTests(SimpleTestCase):
         self.assertEqual(bool_query["must"][1]["multi_match"]["query"], "garlic")
         self.assertEqual(bool_query["must"][2]["multi_match"]["query"], "tomato")
         self.assertEqual(bool_query["must_not"][0]["multi_match"]["query"], "milk")
+
+    @override_settings(OPENSEARCH_SEMANTIC_INDEX="recipes_semantic")
+    @patch("core.views.encode_query_text")
+    @patch("core.views.get_opensearch_client")
+    def test_search_recipes_supports_semantic_mode(self, mock_get_client, mock_encode_query):
+        mock_get_client.return_value = self.opensearch_client
+        mock_encode_query.return_value = [0.1, 0.2, 0.3]
+        self.opensearch_client.search.return_value = {
+            "hits": {
+                "total": {"value": 5, "relation": "eq"},
+                "hits": [
+                    {
+                        "_id": "1",
+                        "_score": 0.91,
+                        "_source": {"title": "Garlic Chicken"},
+                    }
+                ],
+            }
+        }
+
+        response = self.django_client.get(
+            reverse("recipe-search"),
+            {"q": "quick chicken dinner", "mode": "semantic", "size": "2"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(
+            response.content,
+            '{"query": "quick chicken dinner", "mode": "semantic", "include": [], "exclude": [], "page": 1, "size": 2, "total": 5, "total_relation": "eq", "total_pages": 3, "max_page": 500, "has_next": true, "has_previous": false, "count": 1, "results": [{"id": "1", "score": 0.91, "title": "Garlic Chicken"}]}',
+        )
+
+        mock_encode_query.assert_called_once_with("quick chicken dinner")
+        called_kwargs = self.opensearch_client.search.call_args.kwargs
+        self.assertEqual(called_kwargs["index"], "recipes_semantic")
+        self.assertEqual(
+            called_kwargs["body"]["query"]["knn"]["embedding"]["vector"],
+            [0.1, 0.2, 0.3],
+        )
