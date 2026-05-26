@@ -11,6 +11,8 @@ let searchError = '';
 let currentPage = 1;
 let totalResults = 0;
 let totalRelation = 'eq';
+let totalPages = 0;
+let hasNextPage = false;
 
 const searchInput = document.getElementById('search-input');
 const searchBtn = document.getElementById('search-btn');
@@ -112,15 +114,10 @@ function updatePagination(filteredCount) {
 
   if (!hasQuery || !hasResults) return;
 
-  const seenResults = (currentPage - 1) * DEFAULT_RESULT_SIZE + recipes.length;
-  const exactTotalReached = totalRelation === 'eq' && seenResults >= totalResults;
-  const shortPageReached = recipes.length < DEFAULT_RESULT_SIZE;
-  const hasNextPage = !exactTotalReached && !shortPageReached;
-
   prevPageBtn.disabled = currentPage <= 1 || isLoading;
   nextPageBtn.disabled = !hasNextPage || isLoading;
 
-  const totalLabel = totalRelation === 'gte' ? `${totalResults}+` : String(totalResults);
+  const totalLabel = totalRelation === 'gte' ? `${totalPages}+` : String(totalPages);
   pageStatusEl.textContent = `Page ${currentPage} / ${totalLabel}`;
 }
 
@@ -269,6 +266,8 @@ async function searchRecipes(query) {
     currentPage = Number(payload.page || currentPage);
     totalResults = Number(payload.total || 0);
     totalRelation = payload.total_relation || 'eq';
+    totalPages = Number(payload.total_pages || 0);
+    hasNextPage = Boolean(payload.has_next);
   } catch (error) {
     if (error.name === 'AbortError') return;
 
@@ -297,6 +296,8 @@ function doSearch() {
     currentPage = 1;
     totalResults = 0;
     totalRelation = 'eq';
+    totalPages = 0;
+    hasNextPage = false;
     recipes = [];
     searchError = '';
     setLoadingState(false);
