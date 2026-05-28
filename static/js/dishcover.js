@@ -1,5 +1,10 @@
 const SEARCH_ENDPOINT = '/api/search/';
 const DEFAULT_RESULT_SIZE = 12;
+const SEARCH_PLACEHOLDERS = {
+  keyword: 'e.g. steak',
+  semantic: 'e.g. a cozy spicy dinner with rice and tender beef',
+  hybrid: 'e.g. chicken tomato garlic soup',
+};
 
 let activeQuery = '';
 let activeFilter = 'All';
@@ -132,6 +137,10 @@ function getModeLabel() {
   return labels[activeMode] || 'Keyword';
 }
 
+function updateSearchPlaceholder() {
+  searchInput.placeholder = SEARCH_PLACEHOLDERS[activeMode] || SEARCH_PLACEHOLDERS.keyword;
+}
+
 function buildCard(recipe) {
   const visibleNer = recipe.ner.slice(0, 5);
   const moreNer = recipe.ner.length - 5;
@@ -208,7 +217,7 @@ function render() {
   if (!activeQuery) {
     metaEl.textContent = 'Enter a query to search the RecipeNLG index.';
     grid.innerHTML = '';
-    setEmptyCopy('Start with a cooking idea.', 'Try an ingredient, dish name, or natural-language craving.');
+    setEmptyCopy('Start with a cooking idea.', 'Try an ingredient, dish name, or any craving you have.');
     emptyEl.style.display = 'flex';
     paginationEl.style.display = 'none';
     return;
@@ -354,6 +363,7 @@ searchMode.addEventListener('click', event => {
   chip.classList.add('active');
   activeMode = chip.dataset.mode || 'keyword';
   currentPage = 1;
+  updateSearchPlaceholder();
 
   if (activeQuery) searchRecipes(activeQuery);
 });
@@ -370,4 +380,5 @@ nextPageBtn.addEventListener('click', () => {
   searchRecipes(activeQuery);
 });
 
+updateSearchPlaceholder();
 render();
