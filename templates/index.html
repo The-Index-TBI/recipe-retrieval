@@ -51,16 +51,33 @@
           placeholder="e.g. I have chicken, tomatoes, and garlic — make me a soup" />
         <button id="search-btn">Search</button>
       </div>
+      <div class="search-mode" id="search-mode" aria-label="Search mode">
+        <button class="mode-chip active" type="button" data-mode="keyword">Keyword</button>
+        <button class="mode-chip" type="button" data-mode="semantic">Semantic</button>
+        <button class="mode-chip" type="button" data-mode="hybrid">Hybrid</button>
+      </div>
     </div>
   </section>
 
   <!-- ── Filter Bar ─────────────────────────────────────────────── -->
   <div class="filter-bar">
-    <div class="container filter-inner" id="filter-bar">
-      <button class="chip active" data-filter="All">All</button>
-      <button class="chip" data-filter="Few Ingredients">Few Ingredients</button>
-      <button class="chip" data-filter="Simple">Simple Steps</button>
-      <button class="chip" data-filter="Many Steps">Many Steps</button>
+    <div class="container">
+      <div class="filter-inner" id="filter-bar">
+        <button class="chip active" data-filter="All">All</button>
+        <button class="chip" data-filter="Few Ingredients">Few Ingredients</button>
+        <button class="chip" data-filter="Simple">Simple Steps</button>
+        <button class="chip" data-filter="Many Steps">Many Steps</button>
+      </div>
+      <div class="ingredient-filters">
+        <label class="filter-field">
+          <span>Include</span>
+          <input type="text" id="include-input" autocomplete="off" placeholder="garlic, tomato" />
+        </label>
+        <label class="filter-field">
+          <span>Exclude</span>
+          <input type="text" id="exclude-input" autocomplete="off" placeholder="milk, peanut" />
+        </label>
+      </div>
     </div>
   </div>
 
@@ -69,6 +86,11 @@
     <div class="container">
       <p class="results-meta" id="results-meta"></p>
       <div class="recipe-grid" id="recipe-grid"></div>
+      <div class="pagination" id="pagination" style="display:none">
+        <button class="page-btn" id="prev-page">Previous</button>
+        <span class="page-status" id="page-status"></span>
+        <button class="page-btn" id="next-page">Next</button>
+      </div>
       <div class="empty-state" id="empty-state" style="display:none">
         <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="28" cy="28" r="20" stroke="currentColor" stroke-width="2" />

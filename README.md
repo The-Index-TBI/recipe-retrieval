@@ -16,11 +16,15 @@ The longer-term roadmap includes richer filters, semantic retrieval, recipe deta
 - Deployed Django + OpenSearch recipe search app on DigitalOcean.
 - Django backend wired to OpenSearch through reusable connection settings.
 - OpenSearch health endpoint at `/api/health/opensearch/`.
-- Basic recipe search endpoint at `/api/search/?q=...&size=...`.
+- Recipe search endpoint at `/api/search/?q=...&include=...&exclude=...&page=...&size=...`.
 - OpenSearch indexing script for the RecipeNLG CSV dataset.
 - Text search across recipe title, ingredients, directions, and NER fields.
 - Boosted title matching in the search query.
 - Frontend search UI connected to the backend API.
+- Include and exclude ingredient filters for pantry-style search.
+- Paginated API and frontend navigation.
+- Pagination metadata returns total pages, maximum reachable pages, and next/previous flags.
+- Optional semantic search prototype using sentence-transformer embeddings and OpenSearch `knn_vector`.
 - Client-side filters for all results, fewer ingredients, simple steps, and many steps.
 - Result cards showing score, tags, ingredients, first step preview, and source link.
 - Basic Django unit tests for the API surface.
@@ -143,12 +147,10 @@ python -m coverage report -m
 
 The following items are planned or partially scoped in the project guide, but are not fully implemented yet:
 
-- Ingredient include/exclude filters for pantry-style search.
-- Pagination and result size controls in the API.
 - Recipe detail endpoint for retrieving a single indexed recipe.
 - Ingredient suggestions based on frequent RecipeNLG NER terms.
-- Semantic search using sentence-transformer embeddings.
-- Hybrid search that combines BM25 with vector retrieval.
+- Full-corpus semantic indexing and production semantic deployment.
+- UI toggle for keyword, semantic, and hybrid retrieval modes.
 - Similar recipe search based on vector distance.
 - Query understanding for natural language cooking intent.
 - Difficulty and time estimates derived from recipe text.
@@ -168,5 +170,35 @@ Current backend endpoints:
 
 - `GET /api/health/opensearch/` - checks whether OpenSearch is reachable and whether the target index exists.
 - `GET /api/search/?q=...&size=...` - searches recipes with a boosted title match and returns ranked results.
+- `GET /api/search/?q=chicken&include=garlic,tomato&exclude=milk&page=2&size=12` - searches recipes with required and excluded ingredient phrases, returning a paginated result page.
+- `GET /api/search/?q=quick%20dinner&mode=semantic&size=12` - searches a separately indexed semantic prototype index using OpenSearch k-NN vectors.
+- `GET /api/search/?q=quick%20dinner&mode=hybrid&size=12` - combines keyword and semantic prototype results with reciprocal rank fusion.
 
 Planned endpoints include recipe detail, ingredient suggestions, and image-assisted search.
+
+## Semantic Search Prototype
+
+Semantic search is optional and intentionally separate from the main keyword index so the deployed BM25 search remains lightweight.
+
+Install optional dependencies:
+
+```bash
+pip install -r requirements-semantic.txt
+```
+
+Create a semantic prototype index:
+
+```bash
+python scripts/index_semantic_recipes.py
+```
+
+Relevant environment variables:
+
+```env
+OPENSEARCH_SEMANTIC_INDEX=recipes_semantic
+SEMANTIC_MODEL_NAME=sentence-transformers/all-MiniLM-L6-v2
+SEMANTIC_INDEX_LIMIT=10000
+SEMANTIC_INDEX_BATCH_SIZE=128
+```
+
+Start with a small semantic subset before scaling up. The semantic endpoint expects the semantic index to contain an `embedding` field mapped as an OpenSearch `knn_vector`.

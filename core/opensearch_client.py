@@ -15,4 +15,8 @@ def get_opensearch_client() -> OpenSearch:
         use_ssl=settings.OPENSEARCH_USE_SSL,
         verify_certs=settings.OPENSEARCH_VERIFY_CERTS,
         http_auth=http_auth,
+        http_compress=True,
+        timeout=settings.OPENSEARCH_TIMEOUT,
+        max_retries=3,
+        retry_on_timeout=True,
     )
