@@ -26,8 +26,6 @@ Dishcover solves this as an information retrieval problem. It indexes a large re
 - Include and exclude ingredient filters.
 - Pagination and result size limits.
 - Result cards with title, score, tags, ingredients, first direction step, and source link.
-- OpenSearch health endpoint.
-- Semantic health endpoint for deployment diagnostics.
 - Bulk indexing scripts for keyword and semantic indexes.
 - Basic Django tests for API behavior.
 
@@ -55,6 +53,35 @@ The dataset was created by Poznan University of Technology for natural language 
 > Note: RecipeNLG is licensed for non-commercial research and educational use. This project is developed as a university course project and is not intended for commercial use. See the dataset page for the original terms.
 
 ## Architecture
+
+The system is organized as a small web application backed by OpenSearch indexes. The Django app serves both the browser UI and the JSON search API, while separate indexing scripts prepare RecipeNLG data for keyword and semantic retrieval.
+
+```mermaid
+C4Container
+    title Container Diagram - Dishcover Recipe Retrieval System
+
+    Person(user, "User", "Searches for recipes by ingredient, dish name, craving, or dietary restriction.")
+
+    System_Boundary(dishcover, "Dishcover") {
+        Container(browser, "Browser UI", "Django template, CSS, JavaScript", "Search interface with retrieval mode toggles, filters, result cards, and pagination.")
+        Container(web, "Django Web Application", "Django, Python, Gunicorn", "Serves the frontend, validates API requests, builds OpenSearch queries, and formats recipe results.")
+        Container(indexer, "Indexing Pipeline", "Python scripts", "Reads RecipeNLG CSV rows, normalizes recipe fields, creates embeddings, and bulk indexes documents.")
+        ContainerDb(keyword_index, "Keyword Recipe Index", "OpenSearch BM25", "Stores recipe text fields for lexical search over title, ingredients, directions, and NER tags.")
+        ContainerDb(semantic_index, "Semantic Recipe Index", "OpenSearch kNN vector index", "Stores recipe documents with sentence-transformer embeddings for semantic retrieval.")
+    }
+
+    System_Ext(recipe_csv, "RecipeNLG CSV", "Large recipe dataset used as the source corpus.")
+    System_Ext(model, "Sentence Transformer Model", "all-MiniLM-L6-v2 embedding model.")
+
+    Rel(user, browser, "Uses", "HTTPS")
+    Rel(browser, web, "Calls search and health endpoints", "HTTP/JSON")
+    Rel(web, keyword_index, "Runs keyword and hybrid lexical queries", "OpenSearch API")
+    Rel(web, semantic_index, "Runs semantic and hybrid vector queries", "OpenSearch API")
+    Rel(indexer, recipe_csv, "Reads recipe rows from")
+    Rel(indexer, model, "Encodes normalized recipe text with")
+    Rel(indexer, keyword_index, "Bulk indexes keyword documents", "OpenSearch bulk API")
+    Rel(indexer, semantic_index, "Bulk indexes vector documents", "OpenSearch bulk API")
+```
 
 ```text
 User Browser
@@ -292,6 +319,8 @@ The repository also includes GitHub Actions configuration for CI.
 
 
 ## Future Work
+
+Dishcover already demonstrates the core retrieval pipeline, but several improvements would make it more useful as a full recipe discovery product and stronger as an information retrieval system. The next priorities focus on richer recipe exploration, better query assistance, operational observability, and optional multimodal search once the text pipeline is stable.
 
 - Recipe detail page.
 - Ingredient autocomplete from frequent NER terms.
