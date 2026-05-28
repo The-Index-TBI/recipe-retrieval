@@ -268,10 +268,13 @@ async function searchRecipes(query) {
       },
     });
 
-    const payload = await response.json();
+    const contentType = response.headers.get('content-type') || '';
+    const payload = contentType.includes('application/json')
+      ? await response.json()
+      : { error: 'Search service returned a non-JSON response.', details: await response.text() };
 
     if (!response.ok) {
-      throw new Error(payload.error || payload.details || 'Search request failed.');
+      throw new Error(payload.error || 'Search request failed.');
     }
 
     recipes = toArray(payload.results).map(normalizeRecipe);
