@@ -163,6 +163,50 @@ h1 .dot { color: var(--terracotta); }
 
 #search-btn:hover { background: var(--terracotta-d); }
 
+.search-mode {
+  display: inline-flex;
+  gap: 0.25rem;
+  margin-top: 0.875rem;
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  background: var(--white);
+}
+
+.mode-chip {
+  min-width: 6.25rem;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mode-chip:hover { color: var(--ink); }
+
+.mode-chip.active {
+  background: var(--ink);
+  color: var(--white);
+}
+
+@media (max-width: 520px) {
+  .search-mode {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .mode-chip {
+    min-width: 0;
+    padding-inline: 0.5rem;
+  }
+}
+
 /* ── Filter Bar ───────────────────────────────────────────────────── */
 .filter-bar {
   background: var(--white);
@@ -202,6 +246,48 @@ h1 .dot { color: var(--terracotta); }
   color: var(--white);
 }
 
+.ingredient-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding-bottom: 0.875rem;
+}
+
+.filter-field {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--white);
+  padding: 0.625rem 0.75rem;
+}
+
+.filter-field span {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--light);
+  flex-shrink: 0;
+}
+
+.filter-field input {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+}
+
+.filter-field input::placeholder { color: var(--border); }
+
+@media (max-width: 720px) {
+  .ingredient-filters { grid-template-columns: 1fr; }
+}
+
 /* ── Results ──────────────────────────────────────────────────────── */
 .results-section { padding-block: 3rem; }
 
@@ -223,6 +309,49 @@ h1 .dot { color: var(--terracotta); }
 
 @media (max-width: 960px) { .recipe-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 600px) { .recipe-grid { grid-template-columns: 1fr; } }
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.page-btn {
+  min-width: 7.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.page-btn:hover:not(:disabled) {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.page-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.page-status {
+  min-width: 5rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--light);
+}
 
 /* ── Recipe Card ──────────────────────────────────────────────────── */
 .card {
