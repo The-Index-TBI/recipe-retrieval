@@ -1,204 +1,305 @@
 # Dishcover
-Dishcover is a recipe retrieval project built with Django and OpenSearch on top of the RecipeNLG dataset.
 
-The project focuses on practical cooking intent, not just exact recipe-name lookup. Users can search by ingredients, dish names, or broad cravings, and the app returns ranked recipe results from the indexed corpus.
+Dishcover is a scalable recipe retrieval system built with Django and OpenSearch on top of the RecipeNLG dataset. The project helps users find recipes from real cooking intent, such as available ingredients, cravings, dish names, and dietary restrictions.
 
 Live app: https://dishcover-2mlm8.ondigitalocean.app/
 
-## Project Snapshot
+## Problem Statement
 
-This repository currently includes a working Django backend, an OpenSearch indexing pipeline, and a deployed frontend experience. The backend can health-check OpenSearch and run recipe searches against the indexed RecipeNLG corpus, and the frontend renders search results directly from the API.
+Recipe search is often harder than exact title lookup. In real life, users usually know partial information:
 
-The longer-term roadmap includes richer filters, semantic retrieval, recipe detail pages, ingredient suggestions, and optional image-assisted search.
+- "I have chicken, tomatoes, and garlic. What can I cook?"
+- "Find a quick spicy dinner."
+- "Avoid milk and peanuts."
+- "Show recipes similar to rendang."
+
+Dishcover solves this as an information retrieval problem. It indexes a large recipe corpus and supports keyword, semantic, and hybrid retrieval so users can search by exact terms or broader natural-language intent.
 
 ## Current Features
 
-- Deployed Django + OpenSearch recipe search app on DigitalOcean.
-- Django backend wired to OpenSearch through reusable connection settings.
-- OpenSearch health endpoint at `/api/health/opensearch/`.
-- Recipe search endpoint at `/api/search/?q=...&include=...&exclude=...&page=...&size=...`.
-- OpenSearch indexing script for the RecipeNLG CSV dataset.
-- Text search across recipe title, ingredients, directions, and NER fields.
-- Boosted title matching in the search query.
-- Frontend search UI connected to the backend API.
-- Include and exclude ingredient filters for pantry-style search.
-- Paginated API and frontend navigation.
-- Pagination metadata returns total pages, maximum reachable pages, and next/previous flags.
-- Optional semantic search prototype using sentence-transformer embeddings and OpenSearch `knn_vector`.
-- Client-side filters for all results, fewer ingredients, simple steps, and many steps.
-- Result cards showing score, tags, ingredients, first step preview, and source link.
-- Basic Django unit tests for the API surface.
-- GitHub Actions workflow that runs the test suite with coverage.
-- Codecov-ready coverage output for CI.
-- Frontend template and static assets for the initial UI shell.
+- Django web app deployed on DigitalOcean App Platform.
+- OpenSearch-backed retrieval over RecipeNLG recipes.
+- Keyword search using OpenSearch BM25 over `title`, `ingredients`, `directions`, and `ner`.
+- Semantic search using sentence-transformer embeddings stored in an OpenSearch `knn_vector` field.
+- Hybrid search using reciprocal rank fusion over keyword and semantic results.
+- UI toggle for keyword, semantic, and hybrid retrieval modes.
+- Include and exclude ingredient filters.
+- Pagination and result size limits.
+- Result cards with title, score, tags, ingredients, first direction step, and source link.
+- OpenSearch health endpoint.
+- Semantic health endpoint for deployment diagnostics.
+- Bulk indexing scripts for keyword and semantic indexes.
+- Basic Django tests for API behavior.
 
 ## Team
 
 | Name | Student ID | Role |
 |------|------------|------|
-| Valentino Vieri Zhuo | 2306206446 | OpenSearch Setup & Indexing Pipeline |
-| Joshua Montolalu | 2306275746 | Django Backend & Search API |
-| Henry Aditya Kosasi | 2306214990 | Frontend, Semantic Search & Deployment |
+| Valentino Vieri Zhuo | 2306206446 | OpenSearch Setup and Indexing Pipeline |
+| Joshua Montolalu | 2306275746 | Django Backend and Search API |
+| Henry Aditya Kosasi | 2306214990 | Frontend, Semantic Search, Deployment, Documentation |
 
 ## Dataset
 
-This project uses the [RecipeNLG dataset](https://www.kaggle.com/datasets/paultimothymooney/recipenlg), a large-scale cooking recipe dataset containing over 2.2 million recipes with titles, ingredients, directions, and named entity tags. The dataset was originally created by Poznań University of Technology (PUT) for natural language generation research.
+This project uses the [RecipeNLG dataset](https://www.kaggle.com/datasets/paultimothymooney/recipenlg), a large-scale recipe dataset containing more than 2.2 million recipes. The main fields used by Dishcover are:
 
-> **Note:** The RecipeNLG dataset is licensed for non-commercial research and educational purposes only. This project is developed strictly as a university course project and is not intended for commercial use. See the full dataset terms [here](https://recipenlg.cs.put.poznan.pl/).
+- `title`
+- `ingredients`
+- `directions`
+- `link`
+- `source`
+- `NER`
 
-## License
+The dataset was created by Poznan University of Technology for natural language generation research.
 
-This project's code is provided with no license (all rights reserved). However, any use of this project must comply with the RecipeNLG dataset terms — non-commercial research and educational purposes only.
+> Note: RecipeNLG is licensed for non-commercial research and educational use. This project is developed as a university course project and is not intended for commercial use. See the dataset page for the original terms.
 
-## Prerequisites
+## Architecture
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) or Docker on WSL
-- [WSL Ubuntu](https://ubuntu.com/desktop/wsl) (optional, but recommended for smoother development)
-- Python 3.12+
-- Git
+```text
+User Browser
+    |
+    v
+Django Template + Static JS
+    |
+    v
+Django Search API
+    |
+    v
+OpenSearch Managed Database
+    |
+    +-- recipes keyword index
+    +-- recipes_semantic vector index
+```
 
-## Setup
+Django is stateless and can be scaled horizontally by adding more app containers. OpenSearch is responsible for retrieval, ranking, pagination, and vector search. The indexing scripts use bulk indexing so the corpus can be loaded in batches instead of one document at a time.
 
-### 1. Clone the repo
+## How Indexing Works
+
+Each RecipeNLG CSV row is indexed as one recipe document.
+
+### Keyword Index
+
+`scripts/index_recipes.py` reads the CSV and sends recipe documents to OpenSearch. OpenSearch tokenizes text fields and builds an inverted index. At query time, BM25 ranks documents based on term matching and field statistics.
+
+```text
+CSV row -> recipe document -> OpenSearch text fields -> BM25 retrieval
+```
+
+### Semantic Index
+
+`scripts/index_semantic_recipes.py` builds a normalized recipe text from the title, ingredients, NER tags, and early direction steps. The text is encoded with:
+
+```text
+sentence-transformers/all-MiniLM-L6-v2
+```
+
+The model produces a 384-dimensional dense vector for each recipe. The vector is stored in OpenSearch as a `knn_vector`, allowing nearest-neighbor retrieval by meaning rather than exact word overlap.
+
+```text
+CSV row -> recipe document -> normalized recipe text -> embedding vector -> OpenSearch kNN index
+```
+
+The query is also encoded with the same model. Semantic search compares the query vector against recipe vectors and returns the nearest recipes.
+
+## Search Modes
+
+### Keyword
+
+Uses BM25 over text fields. This works well for exact ingredients, dish names, and terms that appear directly in the recipes.
+
+Example:
+
+```http
+GET /api/search/?q=chicken%20soup&mode=keyword&size=12
+```
+
+### Semantic
+
+Encodes the query into a vector and performs OpenSearch kNN search over the semantic index. This works better for natural-language intent and related concepts.
+
+Example:
+
+```http
+GET /api/search/?q=quick%20spicy%20chicken%20dinner&mode=semantic&size=12
+```
+
+### Hybrid
+
+Runs both keyword and semantic retrieval, then combines rankings using reciprocal rank fusion. This helps preserve exact term matching while also capturing broader semantic similarity.
+
+Example:
+
+```http
+GET /api/search/?q=quick%20spicy%20chicken%20dinner&mode=hybrid&size=12
+```
+
+## Local Setup
+
+### 1. Clone The Repository
+
 ```bash
 git clone https://github.com/The-Index-TBI/recipe-retrieval.git
 cd recipe-retrieval
 ```
 
-### 2. Set up virtual environment
+### 2. Create A Virtual Environment
+
 ```bash
-# Make sure your Python version is 3.12 or higher
-# Check with: python --version
 python -m venv venv
-source venv/bin/activate  # Mac/Linux/WSL
-venv\Scripts\activate     # Windows
+source venv/bin/activate
 ```
 
-### 3. Install dependencies
+On Windows:
+
+```powershell
+venv\Scripts\activate
+```
+
+### 3. Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Set up `.env`
-Make a copy of `.env.example` and rename it to `.env`, then fill in the values.
+Semantic search dependencies are included in `requirements.txt`, so no separate semantic requirements file is needed.
 
-### 5. Pull and run OpenSearch
-```bash
-docker run -d --name opensearch -p 9200:9200 -p 9600:9600 -e "discovery.type=single-node" -e "DISABLE_SECURITY_PLUGIN=true" opensearchproject/opensearch:latest
+### 4. Configure Environment Variables
+
+Copy `.env.example` to `.env` and fill in the values.
+
+Important variables:
+
+```env
+DJANGO_SECRET_KEY=your-secret-key
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+CSV_PATH=path/to/RecipeNLG_dataset.csv
+
+OPENSEARCH_HOST=localhost
+OPENSEARCH_PORT=9200
+OPENSEARCH_USE_SSL=False
+OPENSEARCH_VERIFY_CERTS=False
+OPENSEARCH_USERNAME=
+OPENSEARCH_PASSWORD=
+OPENSEARCH_INDEX=recipes
+OPENSEARCH_SEMANTIC_INDEX=recipes_semantic
+OPENSEARCH_TIMEOUT=300
+
+SEMANTIC_MODEL_NAME=sentence-transformers/all-MiniLM-L6-v2
+SEMANTIC_START_OFFSET=auto
+SEMANTIC_INDEX_LIMIT=10000
+SEMANTIC_INDEX_BATCH_SIZE=512
+SEMANTIC_ENCODE_BATCH_SIZE=128
+SEMANTIC_DEVICE=cpu
 ```
 
-### 6. Verify OpenSearch is running
+Use `SEMANTIC_DEVICE=cuda` only when the active Python environment has CUDA-enabled PyTorch installed.
+
+### 5. Run OpenSearch Locally
+
+```bash
+docker run -d --name opensearch \
+  -p 9200:9200 -p 9600:9600 \
+  -e "discovery.type=single-node" \
+  -e "DISABLE_SECURITY_PLUGIN=true" \
+  opensearchproject/opensearch:latest
+```
+
+Check OpenSearch:
+
 ```bash
 curl http://localhost:9200
 ```
 
-### 7. Download the dataset
-Download the RecipeNLG dataset from [Kaggle](https://www.kaggle.com/datasets/paultimothymooney/recipenlg) and place the CSV file somewhere accessible on your machine.
+### 6. Index Recipes
 
-### 8. Index the recipes
+Keyword index:
+
 ```bash
 python scripts/index_recipes.py
 ```
 
-### 9. Test search
-```bash
-curl -X GET "http://localhost:9200/recipes/_search?pretty" -H "Content-Type: application/json" -d '{
-  "query": {
-    "multi_match": {
-      "query": "sweet and spicy",
-      "fields": ["title", "ingredients", "ner"]
-    }
-  },
-  "size": 3
-}'
-```
-Should return 3 ranked recipes. If you see results, everything is working! ✅
-
-### 10. Stop OpenSearch when done
-```bash
-docker stop opensearch
-```
-
-### Running OpenSearch next time
-No need to pull the image again. Just start the existing container:
-```bash
-docker start opensearch
-```
-
-## Testing and CI
-
-Run the Django unit tests locally with:
-
-```bash
-python manage.py test
-```
-
-The repository also includes a GitHub Actions workflow at `.github/workflows/ci.yml` that runs the same test suite with coverage enabled.
-
-For a coverage summary locally, run:
-
-```bash
-pip install coverage # if not installed already
-python -m coverage run --branch manage.py test
-python -m coverage report -m
-```
-
-## Planned Features
-
-The following items are planned or partially scoped in the project guide, but are not fully implemented yet:
-
-- Recipe detail endpoint for retrieving a single indexed recipe.
-- Ingredient suggestions based on frequent RecipeNLG NER terms.
-- Full-corpus semantic indexing and production semantic deployment.
-- UI toggle for keyword, semantic, and hybrid retrieval modes.
-- Similar recipe search based on vector distance.
-- Query understanding for natural language cooking intent.
-- Difficulty and time estimates derived from recipe text.
-- Search analytics for latency and common query logging.
-- Image-assisted search as a stretch feature, not direct image-to-recipe retrieval.
-
-## Architecture Overview
-
-- Django serves the API and the base frontend shell.
-- OpenSearch stores the indexed RecipeNLG recipes and powers retrieval.
-- `scripts/index_recipes.py` builds the initial index from the CSV dataset.
-- The backend currently exposes health and search endpoints; additional endpoints are planned as the project grows.
-
-## API Endpoints
-
-Current backend endpoints:
-
-- `GET /api/health/opensearch/` - checks whether OpenSearch is reachable and whether the target index exists.
-- `GET /api/search/?q=...&size=...` - searches recipes with a boosted title match and returns ranked results.
-- `GET /api/search/?q=chicken&include=garlic,tomato&exclude=milk&page=2&size=12` - searches recipes with required and excluded ingredient phrases, returning a paginated result page.
-- `GET /api/search/?q=quick%20dinner&mode=semantic&size=12` - searches a separately indexed semantic prototype index using OpenSearch k-NN vectors.
-- `GET /api/search/?q=quick%20dinner&mode=hybrid&size=12` - combines keyword and semantic prototype results with reciprocal rank fusion.
-
-Planned endpoints include recipe detail, ingredient suggestions, and image-assisted search.
-
-## Semantic Search Prototype
-
-Semantic search is optional and intentionally separate from the main keyword index so the deployed BM25 search remains lightweight.
-
-Install optional dependencies:
-
-```bash
-pip install -r requirements-semantic.txt
-```
-
-Create a semantic prototype index:
+Semantic index:
 
 ```bash
 python scripts/index_semantic_recipes.py
 ```
 
-Relevant environment variables:
+The semantic script supports:
 
-```env
-OPENSEARCH_SEMANTIC_INDEX=recipes_semantic
-SEMANTIC_MODEL_NAME=sentence-transformers/all-MiniLM-L6-v2
-SEMANTIC_INDEX_LIMIT=10000
-SEMANTIC_INDEX_BATCH_SIZE=128
+- `SEMANTIC_START_OFFSET=auto` for resume behavior.
+- `SEMANTIC_INDEX_LIMIT` for chunked indexing.
+- Bulk indexing with retries.
+- Progress logs showing encode time, bulk indexing time, and documents per second.
+
+### 7. Run Django
+
+```bash
+python manage.py runserver
 ```
 
-Start with a small semantic subset before scaling up. The semantic endpoint expects the semantic index to contain an `embedding` field mapped as an OpenSearch `knn_vector`.
+Open:
+
+```text
+http://127.0.0.1:8000/
+```
+
+## Deployment Notes
+
+The deployed version uses:
+
+- DigitalOcean App Platform for Django.
+- DigitalOcean Managed OpenSearch for the retrieval indexes.
+
+Recommended App Platform run command:
+
+```text
+gunicorn core.wsgi:application --bind 0.0.0.0:8080 --workers 1 --threads 2 --timeout 180
+```
+
+The longer timeout is important because the first semantic query loads the sentence-transformer model. Using one worker avoids loading the model multiple times in memory.
+
+Recommended production environment variables:
+
+```env
+DEBUG=False
+ALLOWED_HOSTS=.ondigitalocean.app
+OPENSEARCH_HOST=your-managed-opensearch-host
+OPENSEARCH_PORT=25060
+OPENSEARCH_USE_SSL=True
+OPENSEARCH_VERIFY_CERTS=True
+OPENSEARCH_USERNAME=your-username
+OPENSEARCH_PASSWORD=your-password
+OPENSEARCH_INDEX=recipes
+OPENSEARCH_SEMANTIC_INDEX=recipes_semantic
+OPENSEARCH_TIMEOUT=300
+SEMANTIC_MODEL_NAME=sentence-transformers/all-MiniLM-L6-v2
+HF_HOME=/tmp/huggingface
+TOKENIZERS_PARALLELISM=false
+```
+
+## Testing
+
+Run the Django tests:
+
+```bash
+python manage.py test
+```
+
+The repository also includes GitHub Actions configuration for CI.
+
+
+## Future Work
+
+- Recipe detail page.
+- Ingredient autocomplete from frequent NER terms.
+- Similar recipe endpoint using vector search.
+- Search analytics for query latency and common queries.
+- Difficulty and time estimates from recipe text.
+- Optional image-assisted recipe search using image labels or CLIP-style embeddings.
+
+## License
+
+This repository is provided for educational coursework. Any use of the RecipeNLG dataset must comply with its original non-commercial research and educational terms.
